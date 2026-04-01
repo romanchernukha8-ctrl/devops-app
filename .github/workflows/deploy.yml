@@ -1,0 +1,39 @@
+name: Deploy with Rollback
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Build Docker image
+        run: docker build -t devops-app:latest .
+
+      - name: Backup previous version
+        run: docker tag devops-app:latest devops-app:backup || true
+
+      - name: Deploy new version
+        run: |
+          docker-compose down
+          docker-compose up -d --build
+
+      - name: Wait for app
+        run: sleep 10
+
+      - name: Healthcheck
+        run: |
+          curl -f http://localhost:8080/health || exit 1
+
+      - name: Rollback if failed
+        if: failure()
+        run: |
+          echo "Rollback..."
+          docker tag devops-app:backup devops-app:latest
+          docker-compose up -d
