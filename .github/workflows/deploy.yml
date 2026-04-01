@@ -21,11 +21,11 @@ jobs:
 
       - name: Deploy new version
         run: |
-          docker-compose down
-          docker-compose up -d --build
+          docker compose down || true
+          docker compose up -d --build
 
       - name: Wait for app
-        run: sleep 10
+        run: sleep 15
 
       - name: Healthcheck
         run: |
@@ -36,4 +36,4 @@ jobs:
         run: |
           echo "Rollback..."
           docker tag devops-app:backup devops-app:latest
-          docker-compose up -d
+          docker compose up -d
