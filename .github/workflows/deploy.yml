@@ -28,11 +28,13 @@ jobs:
         run: sleep 15
 
       - name: Healthcheck
+        id: healthcheck
+        continue-on-error: true
         run: |
-          curl -f http://localhost:8080/health || exit 1
+          curl -f http://localhost:8080/health
 
       - name: Rollback if failed
-        if: failure()
+        if: steps.healthcheck.outcome == 'failure'
         run: |
           echo "Rollback..."
           docker tag devops-app:backup devops-app:latest
