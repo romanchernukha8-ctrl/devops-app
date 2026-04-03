@@ -40,3 +40,11 @@ jobs:
           docker tag devops-app:backup devops-app:latest
           docker compose down
           docker compose up -d
+
+      - name: Rollback if health check failed
+        if: failure()
+        run: |
+          echo "Health check failed, rolling back..."
+          docker compose down
+          docker tag devops-app:backup devops-app:latest
+          docker compose up -d
