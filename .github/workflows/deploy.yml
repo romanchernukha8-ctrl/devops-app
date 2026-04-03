@@ -36,20 +36,23 @@ jobs:
         run: |
           docker tag devops-app:${{ github.sha }} devops-app:latest
 
+      # 🧹 Остановить старые контейнеры (ВАЖНО)
+      - name: Stop old containers
+        run: docker compose down || true
+
       # 🚀 Deploy
       - name: Deploy new version
-        run: |
-          docker compose up -d
+        run: docker compose up -d
 
       # ⏳ Ждём запуск
       - name: Wait for app
-        run: sleep 10
+        run: sleep 15
 
-      # ❤️ Healthcheck (главная проверка)
+      # ❤️ Healthcheck (через nginx внутри контейнера)
       - name: Healthcheck
         run: |
           for i in {1..5}; do
-            if curl -f http://localhost:8080/health; then
+            if docker compose exec -T nginx curl -f http://localhost/health; then
               echo "App is healthy"
               exit 0
             fi
@@ -78,6 +81,6 @@ jobs:
           docker tag devops-app:backup devops-app:latest
 
           docker compose down
-          docker compose up -d
+          docker compose up -d --force-recreate
 
           exit 1
