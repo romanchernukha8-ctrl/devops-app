@@ -24,8 +24,9 @@ jobs:
         run: |
           python app.py &
           sleep 3
+
           curl -f http://localhost:5000/health
-          pkill -f app.py || true
+          kill $APP_PID || true
 
       # 🚀 Deploy (только если тест прошёл)
       - name: Deploy on server
