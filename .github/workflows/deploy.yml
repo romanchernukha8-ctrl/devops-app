@@ -10,77 +10,69 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 📦 Checkout
       - name: Checkout
         uses: actions/checkout@v4
 
-      # 🐳 Build image (версия = commit SHA)
-      - name: Build Docker image
-        run: |
-          docker build -t devops-app:${{ github.sha }} .
+      - name: Deploy on server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            cd ~/devops-app
 
-      # 💾 Backup старой версии
-      - name: Backup current version
-        run: |
-          CURRENT=$(docker images devops-app:latest -q || true)
+            echo "Pull latest code"
+            git pull
 
-          if [ ! -z "$CURRENT" ]; then
-            echo "Backup existing version"
-            docker tag devops-app:latest devops-app:backup
-          else
-            echo "No previous version found"
-          fi
+            echo "Build new image"
+            docker build -t devops-app:${{ github.sha }} .
 
-      # 🏷 Делаем новую версию latest
-      - name: Tag new version as latest
-        run: |
-          docker tag devops-app:${{ github.sha }} devops-app:latest
+            echo "Backup current version"
+            CURRENT=$(docker images devops-app:latest -q || true)
 
-      # 🧹 Остановить старые контейнеры (ВАЖНО)
-      - name: Stop old containers
-        run: docker compose down || true
-
-      # 🚀 Deploy
-      - name: Deploy new version
-        run: docker compose up -d
-
-      # ⏳ Ждём запуск
-      - name: Wait for app
-        run: sleep 15
-
-      # ❤️ Healthcheck (через nginx внутри контейнера)
-      - name: Healthcheck
-        run: |
-          for i in {1..5}; do
-            if docker compose exec -T nginx curl -f http://localhost/health; then
-              echo "App is healthy"
-              exit 0
+            if [ ! -z "$CURRENT" ]; then
+              docker tag devops-app:latest devops-app:backup
+              echo "Backup created"
+            else
+              echo "No previous version"
             fi
-            sleep 3
-          done
 
-          echo "Healthcheck failed"
-          exit 1
+            echo "Tag new version"
+            docker tag devops-app:${{ github.sha }} devops-app:latest
 
-      # 🔁 Rollback если что-то пошло не так
-      - name: Rollback if failed
-        if: failure()
-        run: |
-          echo "Deployment failed. Rolling back..."
+            echo "Stop old containers"
+            docker compose down || true
 
-          echo "===== APP1 LOGS ====="
-          docker compose logs app1 --tail=50 || true
+            echo "Deploy"
+            docker compose up -d --force-recreate
 
-          echo "===== APP2 LOGS ====="
-          docker compose logs app2 --tail=50 || true
+            echo "Wait"
+            sleep 15
 
-          echo "===== NGINX LOGS ====="
-          docker compose logs nginx --tail=50 || true
+            echo "Healthcheck"
+            for i in {1..5}; do
+              if docker compose exec -T nginx curl -f http://localhost/health; then
+                echo "App is healthy"
+                exit 0
+              fi
+              sleep 3
+            done
 
-          echo "Restore backup version..."
-          docker tag devops-app:backup devops-app:latest
+            echo "Healthcheck failed"
 
-          docker compose down
-          docker compose up -d --force-recreate
+            echo "===== LOGS ====="
+            docker compose logs app1 --tail=50 || true
+            docker compose logs app2 --tail=50 || true
+            docker compose logs nginx --tail=50 || true
 
-          exit 1
+            echo "Rollback"
+            if docker images devops-app:backup -q | grep -q .; then
+              docker tag devops-app:backup devops-app:latest
+              docker compose up -d --force-recreate
+              echo "Rollback done"
+            else
+              echo "No backup image found"
+            fi
+
+            exit 1
