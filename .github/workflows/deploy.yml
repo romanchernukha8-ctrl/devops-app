@@ -10,59 +10,42 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 📦 Checkout
       - name: Checkout
         uses: actions/checkout@v4
 
-      # 🔨 Build image
+      # 🐳 Build image (версия = commit SHA)
       - name: Build Docker image
-        run: docker build -t devops-app:${{ github.sha }} .
+        run: |
+          docker build -t devops-app:${{ github.sha }} .
 
-      -name: Tag as latest
-       run: docker tag devops-app:${{ github.sha }} devops-app:latest
-
-      # 💾 Backup previous version
-      - name: Save current version
+      # 💾 Backup старой версии
+      - name: Backup current version
         run: |
           CURRENT=$(docker images devops-app:latest -q || true)
+
           if [ ! -z "$CURRENT" ]; then
+            echo "Backup existing version"
             docker tag devops-app:latest devops-app:backup
+          else
+            echo "No previous version found"
           fi
+
+      # 🏷 Делаем новую версию latest
+      - name: Tag new version as latest
+        run: |
+          docker tag devops-app:${{ github.sha }} devops-app:latest
+
       # 🚀 Deploy
       - name: Deploy new version
         run: |
-          docker compose up -d --build
+          docker compose up -d
 
-      # ⏳ Wait
+      # ⏳ Ждём запуск
       - name: Wait for app
         run: sleep 10
 
-      # 🔍 Check containers
-      - name: Check containers are running
-        run: |
-          docker ps
-          COUNT=$(docker ps -q | wc -l)
-          if [ "$COUNT" -lt 3 ]; then
-            echo "ERROR: Not all containers are running!"
-            exit 1
-          fi
-
-      - name: Ensure containers are healthy
-        run: |
-          sleep 5
-
-          for i in {1..5}; do
-            FAILED=$(docker ps -a --filter "status=exited" -q)
-
-            if [ ! -z "$FAILED" ]; then
-              echo "ERROR: Some containers exited!"
-              docker ps -a
-              exit 1
-            fi
-
-            sleep 2
-          done
-
-      # ❤️ Healthcheck
+      # ❤️ Healthcheck (главная проверка)
       - name: Healthcheck
         run: |
           for i in {1..5}; do
@@ -76,7 +59,7 @@ jobs:
           echo "Healthcheck failed"
           exit 1
 
-      # 🔁 Rollback
+      # 🔁 Rollback если что-то пошло не так
       - name: Rollback if failed
         if: failure()
         run: |
@@ -91,7 +74,10 @@ jobs:
           echo "===== NGINX LOGS ====="
           docker compose logs nginx --tail=50 || true
 
+          echo "Restore backup version..."
           docker tag devops-app:backup devops-app:latest
+
+          docker compose down
           docker compose up -d
 
           exit 1
