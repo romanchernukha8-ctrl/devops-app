@@ -15,7 +15,7 @@ services:
     image: nginx:latest
     container_name: nginx
     ports:
-      - "8080:80"
+      - "80:80"
     depends_on:
       - app1
       - app2
