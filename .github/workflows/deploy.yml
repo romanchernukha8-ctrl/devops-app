@@ -10,9 +10,24 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 📦 Checkout
       - name: Checkout
         uses: actions/checkout@v4
 
+      # 📦 Установка зависимостей
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      # 🧪 ТЕСТ ПЕРЕД ДЕПЛОЕМ (ВАЖНО)
+      - name: Test app
+        run: |
+          python app.py &
+          sleep 3
+          curl -f http://localhost:5000/health
+          pkill -f app.py || true
+
+      # 🚀 Deploy (только если тест прошёл)
       - name: Deploy on server
         uses: appleboy/ssh-action@v1.0.3
         with:
