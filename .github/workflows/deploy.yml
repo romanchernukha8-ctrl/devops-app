@@ -13,38 +13,81 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
+      # 🔨 Build image
       - name: Build Docker image
         run: docker build -t devops-app:latest .
 
+      # 💾 Backup previous version
       - name: Backup previous version
         run: docker tag devops-app:latest devops-app:backup || true
 
+      # 🚀 Deploy
       - name: Deploy new version
         run: |
-          docker compose down || true
+          docker compose down --remove-orphans || true
           docker compose up -d --build
 
+      # ⏳ Wait
       - name: Wait for app
-        run: sleep 15
+        run: sleep 10
 
+      # 🔍 Check containers
+      - name: Check containers are running
+        run: |
+          docker ps
+          COUNT=$(docker ps -q | wc -l)
+          if [ "$COUNT" -lt 3 ]; then
+            echo "ERROR: Not all containers are running!"
+            exit 1
+          fi
+
+      - name: Ensure containers are healthy
+        run: |
+          sleep 5
+
+          for i in {1..5}; do
+            FAILED=$(docker ps -a --filter "status=exited" -q)
+
+            if [ ! -z "$FAILED" ]; then
+              echo "ERROR: Some containers exited!"
+              docker ps -a
+              exit 1
+            fi
+
+            sleep 2
+          done
+
+      # ❤️ Healthcheck
       - name: Healthcheck
-        id: healthcheck
-        continue-on-error: true
         run: |
-          curl -f http://localhost:8080/health
+          for i in {1..5}; do
+            if curl -f http://localhost:8080/health; then
+              echo "App is healthy"
+              exit 0
+            fi
+            sleep 3
+          done
 
+          echo "Healthcheck failed"
+          exit 1
+
+      # 🔁 Rollback
       - name: Rollback if failed
-        if: steps.healthcheck.outcome == 'failure'
-        run: |
-          echo "Rollback..."
-          docker tag devops-app:backup devops-app:latest
-          docker compose down
-          docker compose up -d
-
-      - name: Rollback if health check failed
         if: failure()
         run: |
-          echo "Health check failed, rolling back..."
-          docker compose down
+          echo "Deployment failed. Rolling back..."
+
+          echo "===== APP1 LOGS ====="
+          docker compose logs app1 --tail=50 || true
+
+          echo "===== APP2 LOGS ====="
+          docker compose logs app2 --tail=50 || true
+
+          echo "===== NGINX LOGS ====="
+          docker compose logs nginx --tail=50 || true
+
           docker tag devops-app:backup devops-app:latest
+          docker compose down
           docker compose up -d
+
+          exit 1
