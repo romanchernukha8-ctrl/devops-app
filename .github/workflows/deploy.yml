@@ -11,20 +11,25 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       # 🔨 Build image
       - name: Build Docker image
-        run: docker build -t devops-app:latest .
+        run: docker build -t devops-app:${{ github.sha }} .
+
+      -name: Tag as latest
+       run: docker tag devops-app:${{ github.sha }} devops-app:latest
 
       # 💾 Backup previous version
-      - name: Backup previous version
-        run: docker tag devops-app:latest devops-app:backup || true
-
+      - name: Save current version
+        run: |
+          CURRENT=$(docker images devops-app:latest -q || true)
+          if [ ! -z "$CURRENT" ]; then
+            docker tag devops-app:latest devops-app:backup
+          fi
       # 🚀 Deploy
       - name: Deploy new version
         run: |
-          docker compose down --remove-orphans || true
           docker compose up -d --build
 
       # ⏳ Wait
@@ -87,7 +92,6 @@ jobs:
           docker compose logs nginx --tail=50 || true
 
           docker tag devops-app:backup devops-app:latest
-          docker compose down
           docker compose up -d
 
           exit 1
