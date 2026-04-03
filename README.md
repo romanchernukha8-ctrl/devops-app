@@ -1,18 +1,18 @@
-# 🚀 DevOps App with Load Balancing & Rollback
+#  DevOps App with Load Balancing & Rollback
 
-## 📌 Description
+##  Description
 
 This project demonstrates a production-like deployment setup using Docker, Nginx, and GitHub Actions with an automatic rollback mechanism based on health checks.
 
 ---
 
-## 🧱 Architecture
+##  Architecture
 
 Client → Nginx → App1 / App2
 
 ---
 
-## ⚙️ Features
+## Features
 
 - Multi-container application (Docker Compose)
 - Load balancing via Nginx
@@ -20,9 +20,12 @@ Client → Nginx → App1 / App2
 - CI/CD pipeline with GitHub Actions
 - Automatic rollback if deployment fails
 
+## ❤️ Health Endpoint
+
+GET /health → returns 200 OK if application is healthy
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 devops-app/
 ├── app.py
@@ -39,7 +42,7 @@ devops-app/
 
 ---
 
-## 🐳 Run locally
+## Run locally
 
 docker compose up -d --build
 
@@ -49,7 +52,7 @@ http://localhost:8080
 
 ---
 
-## 🔁 Load balancing test
+## Load balancing test
 
 Refresh the page multiple times:
 
@@ -57,7 +60,7 @@ You should see responses from different instances (app1 / app2).
 
 ---
 
-## 🧪 Rollback test
+## Rollback test
 
 1. Break the `/health` endpoint (return 500)
 2. Push changes to GitHub
@@ -71,7 +74,7 @@ Expected result:
 
 ---
 
-## 🔄 CI/CD Pipeline
+## CI/CD Pipeline
 
 Pipeline steps:
 
@@ -81,9 +84,15 @@ Pipeline steps:
 4. Run healthcheck (`/health`)
 5. If failed → rollback to previous version
 
+### 🔁 Rollback Logic
+
+- The current image is tagged as backup before deployment
+- After deployment, a health check is executed
+- If the health check fails, the system restores the previous image and redeploys
+
 ---
 
-## 📦 Tech Stack
+## Tech Stack
 
 - Python (Flask)
 - Docker / Docker Compose
@@ -92,14 +101,14 @@ Pipeline steps:
 
 ---
 
-## 💡 Key Concept
+## Key Concept
 
 This project implements a self-healing deployment system:
 
 If a new deployment fails → system automatically rolls back to a stable version.
 
----
+### Example response:
 
-## 👨‍💻 Author
-
+Hello from app1  
+Hello from app2
 
