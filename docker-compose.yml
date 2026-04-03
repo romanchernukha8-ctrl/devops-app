@@ -1,14 +1,12 @@
-version: '3.8'
-
 services:
   app1:
-    build: .
+    image: devops-app:latest
     container_name: app1
     environment:
       - INSTANCE_NAME=app1
 
   app2:
-    build: .
+    image: devops-app:latest
     container_name: app2
     environment:
       - INSTANCE_NAME=app2
