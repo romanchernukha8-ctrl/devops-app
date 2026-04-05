@@ -19,7 +19,7 @@ jobs:
         run: |
           pip install -r requirements.txt
 
-       Run application test before deployment
+      # Run application test before deployment
       - name: Test app
         run: |
           python app.py &
