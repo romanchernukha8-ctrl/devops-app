@@ -31,7 +31,7 @@ jobs:
 
           kill $APP_PID || true
 
-       Deploy to server (runs only if tests pass)
+     #  Deploy to server (runs only if tests pass)
       - name: Deploy on server
         uses: appleboy/ssh-action@v1.0.3
         with:
