@@ -10,7 +10,8 @@ It includes automated deployment, health checks, and a rollback mechanism that r
 
 ## Live Demo
 
-http://3.85.224.36
+The application is deployed on AWS EC2.
+Public IP may change after instance restart.
 
 ---
 
