@@ -88,7 +88,10 @@ jobs:
             echo "Rollback to previous version"
             if docker images devops-app:backup -q | grep -q .; then
               docker tag devops-app:backup devops-app:latest
+
+              docker compose down
               docker compose up -d --force-recreate
+
               echo "Rollback completed"
             else
               echo "No backup image found"
