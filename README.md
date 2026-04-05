@@ -11,8 +11,7 @@ It includes automated deployment, health checks, and a rollback mechanism that r
 ## Live Demo
 
 The application is deployed on AWS EC2.
-Public IP may change after instance restart.
-
+Due to dynamic public IP allocation, the endpoint may change after instance restart.
 ---
 
 ## Architecture
