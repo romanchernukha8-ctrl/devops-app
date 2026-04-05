@@ -19,19 +19,19 @@ jobs:
         run: |
           pip install -r requirements.txt
 
-      # Run application test before deployment
-     # - name: Test app
-      #  run: |
-       #   python app.py &
-        #  APP_PID=$!
+       Run application test before deployment
+      - name: Test app
+        run: |
+          python app.py &
+          APP_PID=$!
 
-         # sleep 3
+          sleep 3
 
-          #curl -f http://localhost:5000/health
+          curl -f http://localhost:5000/health
 
-          #kill $APP_PID || true
+          kill $APP_PID || true
 
-      # Deploy to server (runs only if tests pass)
+       Deploy to server (runs only if tests pass)
       - name: Deploy on server
         uses: appleboy/ssh-action@v1.0.3
         with:
